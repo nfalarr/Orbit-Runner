@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Orbit Runner</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-panel" aria-label="Orbit Runner">
+        <canvas id="game" width="960" height="600"></canvas>
+
+        <div class="hud" aria-live="polite">
+          <div class="hud-card score-card">
+            <span class="label">Skor</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="hud-card">
+            <span class="label">Combo</span>
+            <strong id="combo">x1</strong>
+          </div>
+          <div class="hud-card">
+            <span class="label">Perisai</span>
+            <strong id="shield">1</strong>
+          </div>
+          <div class="hud-card">
+            <span class="label">Level</span>
+            <strong id="level">1</strong>
+          </div>
+          <div class="hud-actions">
+            <button id="pause" class="icon-button" type="button" aria-label="Jeda" title="Jeda">
+              <span aria-hidden="true">II</span>
+            </button>
+            <button id="mute" class="icon-button" type="button" aria-label="Matikan suara" title="Suara">
+              <span aria-hidden="true">♪</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="status-strip" aria-live="polite">
+          <div>
+            <span>Jarak</span>
+            <strong id="distance">0 m</strong>
+          </div>
+          <div>
+            <span>Misi</span>
+            <strong id="mission">Ambil 5 kristal</strong>
+          </div>
+          <div>
+            <span>Rekor</span>
+            <strong id="best">0</strong>
+          </div>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+        <div id="overlay" class="overlay">
+          <div class="title-block">
+            <p class="kicker">Arcade survival</p>
+            <h1>Orbit Runner</h1>
+            <p id="overlay-copy">Ambil kristal, kumpulkan power-up, dan selamat dari badai meteor yang makin brutal.</p>
+          </div>
+          <div id="result" class="result-grid" hidden>
+            <div>
+              <span>Skor</span>
+              <strong id="final-score">0</strong>
+            </div>
+            <div>
+              <span>Jarak</span>
+              <strong id="final-distance">0 m</strong>
+            </div>
+            <div>
+              <span>Rekor</span>
+              <strong id="final-best">0</strong>
+            </div>
+          </div>
+          <div class="overlay-actions">
+            <button id="start" class="primary" type="button">Mulai</button>
+          </div>
+        </div>
+
+        <div class="touch-controls" aria-hidden="true">
+          <button id="left" type="button">‹</button>
+          <button id="boost" type="button">BOOST</button>
+          <button id="right" type="button">›</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
