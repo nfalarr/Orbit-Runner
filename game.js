@@ -21,7 +21,10 @@ const pauseButton = document.getElementById("pause");
 const muteButton = document.getElementById("mute");
 const leftButton = document.getElementById("left");
 const rightButton = document.getElementById("right");
+const upButton = document.getElementById("up");
+const downButton = document.getElementById("down");
 const boostButton = document.getElementById("boost");
+const fireButton = document.getElementById("fire");
 
 const STORAGE_KEY = "orbit-runner-best";
 const missions = [
@@ -60,10 +63,12 @@ const state = {
   slowField: 0,
   magnet: 0,
   toastTimer: 0,
+  fireCooldown: 0,
   keys: new Set(),
   hazards: [],
   gems: [],
   powers: [],
+  bullets: [],
   particles: [],
   trails: [],
   stars: []
@@ -73,6 +78,7 @@ const player = {
   x: 480,
   y: 500,
   vx: 0,
+  vy: 0,
   radius: 18,
   invincible: 0,
   tilt: 0
@@ -89,7 +95,7 @@ function resize() {
   canvas.width = Math.floor(rect.width * state.dpr);
   canvas.height = Math.floor(rect.height * state.dpr);
   ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-  player.y = state.height - Math.max(86, state.height * 0.14);
+  player.y = Math.max(player.radius + 70, Math.min(state.height - Math.max(86, state.height * 0.14), player.y));
   player.x = Math.max(player.radius + 10, Math.min(state.width - player.radius - 10, player.x));
   seedStars();
 }
@@ -131,13 +137,17 @@ function reset() {
   state.slowField = 0;
   state.magnet = 0;
   state.toastTimer = 0;
+  state.fireCooldown = 0;
   state.hazards = [];
   state.gems = [];
   state.powers = [];
+  state.bullets = [];
   state.particles = [];
   state.trails = [];
   player.x = state.width / 2;
+  player.y = state.height - Math.max(86, state.height * 0.14);
   player.vx = 0;
+  player.vy = 0;
   player.invincible = 1.35;
   player.tilt = 0;
   pauseButton.textContent = "II";
@@ -243,6 +253,28 @@ function burst(x, y, color, amount = 12, speed = 160) {
   }
 }
 
+function shoot() {
+  if (state.fireCooldown > 0) return;
+  state.fireCooldown = 0.18;
+  state.bullets.push({
+    x: player.x - 7,
+    y: player.y - 24,
+    vx: -18,
+    vy: -720,
+    radius: 4,
+    life: 1.1
+  });
+  state.bullets.push({
+    x: player.x + 7,
+    y: player.y - 24,
+    vx: 18,
+    vy: -720,
+    radius: 4,
+    life: 1.1
+  });
+  playTone(880, 0.04, "square", 0.018);
+}
+
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -265,23 +297,37 @@ function update(dt) {
   state.slowField = Math.max(0, state.slowField - dt);
   state.magnet = Math.max(0, state.magnet - dt);
   state.toastTimer = Math.max(0, state.toastTimer - dt);
+  state.fireCooldown = Math.max(0, state.fireCooldown - dt);
   player.invincible = Math.max(0, player.invincible - dt);
 
   if (state.toastTimer <= 0) toastEl.classList.remove("show");
 
   const left = state.keys.has("arrowleft") || state.keys.has("a");
   const right = state.keys.has("arrowright") || state.keys.has("d");
+  const up = state.keys.has("arrowup") || state.keys.has("w");
+  const down = state.keys.has("arrowdown") || state.keys.has("s");
   const boost = state.keys.has(" ") || state.keys.has("shift");
+  const firing = state.keys.has("f") || state.keys.has("enter");
   const target = (right ? 1 : 0) - (left ? 1 : 0);
+  const verticalTarget = (down ? 1 : 0) - (up ? 1 : 0);
   const boostActive = boost && state.boost > 0.04 && state.boostCooldown <= 0;
   const acceleration = boostActive ? 2450 : 1580;
+  const verticalAcceleration = boostActive ? 1900 : 1250;
   const maxSpeed = boostActive ? 720 : 470;
+  const maxVerticalSpeed = boostActive ? 540 : 360;
   player.vx += target * acceleration * dt;
+  player.vy += verticalTarget * verticalAcceleration * dt;
   player.vx *= Math.pow(boostActive ? 0.008 : 0.0012, dt);
+  player.vy *= Math.pow(boostActive ? 0.012 : 0.0018, dt);
   player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
+  player.vy = Math.max(-maxVerticalSpeed, Math.min(maxVerticalSpeed, player.vy));
   player.x += player.vx * dt;
+  player.y += player.vy * dt;
   player.x = Math.max(player.radius + 10, Math.min(state.width - player.radius - 10, player.x));
+  player.y = Math.max(player.radius + 72, Math.min(state.height - player.radius - 74, player.y));
   player.tilt += ((player.vx / maxSpeed) - player.tilt) * Math.min(1, dt * 10);
+
+  if (firing) shoot();
 
   if (boostActive) {
     state.boost = Math.max(0, state.boost - dt * 0.48);
@@ -307,6 +353,7 @@ function update(dt) {
   }
 
   updateObjects(dt, slowFactor);
+  hitHazards();
   collectItems();
   checkMission();
   updateHud();
@@ -344,6 +391,12 @@ function updateObjects(dt, slowFactor) {
     power.pulse += dt * 7;
   }
 
+  for (const bullet of state.bullets) {
+    bullet.x += bullet.vx * dt;
+    bullet.y += bullet.vy * dt;
+    bullet.life -= dt;
+  }
+
   for (const particle of state.particles) {
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
@@ -358,8 +411,27 @@ function updateObjects(dt, slowFactor) {
   state.hazards = state.hazards.filter((item) => item.y < state.height + 90);
   state.gems = state.gems.filter((item) => item.y < state.height + 60);
   state.powers = state.powers.filter((item) => item.y < state.height + 60);
+  state.bullets = state.bullets.filter((item) => item.life > 0 && item.y > -30);
   state.particles = state.particles.filter((item) => item.life > 0);
   state.trails = state.trails.filter((item) => item.life > 0);
+}
+
+function hitHazards() {
+  for (let b = state.bullets.length - 1; b >= 0; b--) {
+    const bullet = state.bullets[b];
+    for (let h = state.hazards.length - 1; h >= 0; h--) {
+      const hazard = state.hazards[h];
+      if (distance(bullet, hazard) < bullet.radius + hazard.radius * 0.82) {
+        state.bullets.splice(b, 1);
+        state.hazards.splice(h, 1);
+        state.score += hazard.kind === "drone" ? 160 : 95;
+        state.combo = Math.min(12, state.combo + 1);
+        burst(hazard.x, hazard.y, hazard.kind === "drone" ? "#57d9ff" : "#ff6b6b", 18, 190);
+        playTone(hazard.kind === "drone" ? 420 : 260, 0.08, "sawtooth", 0.025);
+        break;
+      }
+    }
+  }
 }
 
 function collectItems() {
@@ -486,6 +558,7 @@ function draw() {
   ctx.clearRect(-20, -20, state.width + 40, state.height + 40);
   drawBackground();
   drawTrails();
+  drawBullets();
   drawItems();
   drawPlayer();
   drawParticles();
@@ -613,6 +686,23 @@ function drawTrails() {
   }
 }
 
+function drawBullets() {
+  ctx.save();
+  ctx.shadowColor = "#ffd166";
+  ctx.shadowBlur = 14;
+  for (const bullet of state.bullets) {
+    ctx.fillStyle = "#ffd166";
+    ctx.beginPath();
+    ctx.roundRect(bullet.x - 3, bullet.y - 12, 6, 18, 4);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 209, 102, 0.24)";
+    ctx.beginPath();
+    ctx.roundRect(bullet.x - 6, bullet.y - 3, 12, 24, 6);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawPlayer() {
   ctx.save();
   ctx.translate(player.x, player.y);
@@ -716,28 +806,37 @@ canvas.addEventListener("pointerup", () => {
   dragPointerId = null;
   state.keys.delete("arrowleft");
   state.keys.delete("arrowright");
+  state.keys.delete("arrowup");
+  state.keys.delete("arrowdown");
 });
 
 canvas.addEventListener("pointercancel", () => {
   dragPointerId = null;
   state.keys.delete("arrowleft");
   state.keys.delete("arrowright");
+  state.keys.delete("arrowup");
+  state.keys.delete("arrowdown");
 });
 
 function moveTowardPointer(event) {
   if (!state.running || state.paused) return;
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
   state.keys.delete("arrowleft");
   state.keys.delete("arrowright");
+  state.keys.delete("arrowup");
+  state.keys.delete("arrowdown");
   if (x < player.x - 18) state.keys.add("arrowleft");
   if (x > player.x + 18) state.keys.add("arrowright");
+  if (y < player.y - 18) state.keys.add("arrowup");
+  if (y > player.y + 18) state.keys.add("arrowdown");
 }
 
 window.addEventListener("resize", resize);
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (["arrowleft", "arrowright", "a", "d", " ", "shift", "p", "escape"].includes(key)) event.preventDefault();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s", "f", "enter", " ", "shift", "p", "escape"].includes(key)) event.preventDefault();
   if ((key === "p" || key === "escape") && state.running) togglePause();
   if (key === " " && !state.running) reset();
   state.keys.add(key);
@@ -752,7 +851,7 @@ startButton.addEventListener("click", () => {
   }
   overlayKicker.textContent = "Arcade survival";
   overlayTitle.textContent = "Orbit Runner";
-  overlayCopy.textContent = "Ambil kristal, kumpulkan power-up, dan selamat dari badai meteor yang makin brutal.";
+  overlayCopy.textContent = "Terbang bebas, tembak meteor, ambil power-up, dan tahan orbit selama mungkin.";
   startButton.textContent = "Mulai";
   reset();
 });
@@ -770,7 +869,10 @@ muteButton.addEventListener("click", () => {
 
 setTouch(leftButton, "arrowleft");
 setTouch(rightButton, "arrowright");
+setTouch(upButton, "arrowup");
+setTouch(downButton, "arrowdown");
 setTouch(boostButton, " ");
+setTouch(fireButton, "f");
 
 bestEl.textContent = Math.floor(state.best).toLocaleString("id-ID");
 resize();
