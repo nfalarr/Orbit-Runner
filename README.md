@@ -2,6 +2,8 @@
 
 Orbit Runner adalah game arcade survival berbasis HTML Canvas. Pemain mengendalikan pesawat di orbit, menghindari meteor, menembak ancaman, mengambil kristal, dan mengumpulkan power-up untuk bertahan selama mungkin.
 
+🌐 **Demo Aplikasi:** https://orbit-runner-game.netlify.app
+
 ## Fitur
 
 - Kontrol pesawat 4 arah: kiri, kanan, maju, dan mundur.
