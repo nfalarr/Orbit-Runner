@@ -8,6 +8,7 @@ const distanceEl = document.getElementById("distance");
 const missionEl = document.getElementById("mission");
 const bestEl = document.getElementById("best");
 const toastEl = document.getElementById("toast");
+const staminaFill = document.getElementById("stamina-fill");
 const overlay = document.getElementById("overlay");
 const overlayKicker = overlay.querySelector(".kicker");
 const overlayTitle = overlay.querySelector("h1");
@@ -57,6 +58,7 @@ const state = {
   gemTimer: 0,
   powerTimer: 0,
   droneTimer: 0,
+  enemyTimer: 0,
   shake: 0,
   boost: 1,
   boostCooldown: 0,
@@ -69,6 +71,8 @@ const state = {
   gems: [],
   powers: [],
   bullets: [],
+  enemies: [],
+  enemyBullets: [],
   particles: [],
   trails: [],
   stars: []
@@ -138,10 +142,13 @@ function reset() {
   state.magnet = 0;
   state.toastTimer = 0;
   state.fireCooldown = 0;
+  state.enemyTimer = 8.5;
   state.hazards = [];
   state.gems = [];
   state.powers = [];
   state.bullets = [];
+  state.enemies = [];
+  state.enemyBullets = [];
   state.particles = [];
   state.trails = [];
   player.x = state.width / 2;
@@ -238,6 +245,19 @@ function spawnPower() {
   });
 }
 
+function spawnEnemy() {
+  const scale = difficulty();
+  state.enemies.push({
+    x: rand(60, state.width - 60),
+    y: -30,
+    radius: 20,
+    vy: rand(80, 140) * scale,
+    vx: rand(-60, 60),
+    shootTimer: rand(2.5, 4.5),
+    health: 3
+  });
+}
+
 function burst(x, y, color, amount = 12, speed = 160) {
   for (let i = 0; i < amount; i++) {
     state.particles.push({
@@ -251,6 +271,22 @@ function burst(x, y, color, amount = 12, speed = 160) {
       radius: rand(2, 5)
     });
   }
+}
+
+function enemyShoot(enemy) {
+  const dx = player.x - enemy.x;
+  const dy = player.y - enemy.y;
+  const dist = Math.hypot(dx, dy);
+  const speed = 240;
+  state.enemyBullets.push({
+    x: enemy.x,
+    y: enemy.y,
+    vx: (dx / dist) * speed,
+    vy: (dy / dist) * speed,
+    radius: 5,
+    life: 2.0
+  });
+  playTone(280, 0.06, "square", 0.015);
 }
 
 function shoot() {
@@ -351,12 +387,19 @@ function update(dt) {
     spawnPower();
     state.powerTimer = rand(8, 13);
   }
+  if (state.enemyTimer <= 0) {
+    spawnEnemy();
+    state.enemyTimer = rand(5.5, 8.5);
+  }
 
   updateObjects(dt, slowFactor);
   hitHazards();
+  hitEnemies();
+  hitEnemyBullets();
   collectItems();
   checkMission();
   updateHud();
+  updateStamina();
 }
 
 function updateObjects(dt, slowFactor) {
@@ -397,6 +440,22 @@ function updateObjects(dt, slowFactor) {
     bullet.life -= dt;
   }
 
+  for (const enemy of state.enemies) {
+    enemy.x += enemy.vx * dt;
+    enemy.y += enemy.vy * dt;
+    enemy.shootTimer -= dt;
+    if (enemy.shootTimer <= 0) {
+      enemyShoot(enemy);
+      enemy.shootTimer = rand(2.2, 3.8);
+    }
+  }
+
+  for (const ebullet of state.enemyBullets) {
+    ebullet.x += ebullet.vx * dt;
+    ebullet.y += ebullet.vy * dt;
+    ebullet.life -= dt;
+  }
+
   for (const particle of state.particles) {
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
@@ -412,6 +471,8 @@ function updateObjects(dt, slowFactor) {
   state.gems = state.gems.filter((item) => item.y < state.height + 60);
   state.powers = state.powers.filter((item) => item.y < state.height + 60);
   state.bullets = state.bullets.filter((item) => item.life > 0 && item.y > -30);
+  state.enemies = state.enemies.filter((item) => item.y < state.height + 90);
+  state.enemyBullets = state.enemyBullets.filter((item) => item.life > 0);
   state.particles = state.particles.filter((item) => item.life > 0);
   state.trails = state.trails.filter((item) => item.life > 0);
 }
@@ -474,6 +535,55 @@ function collectItems() {
       return;
     }
   }
+}
+
+function hitEnemies() {
+  for (let b = state.bullets.length - 1; b >= 0; b--) {
+    const bullet = state.bullets[b];
+    for (let e = state.enemies.length - 1; e >= 0; e--) {
+      const enemy = state.enemies[e];
+      if (distance(bullet, enemy) < bullet.radius + enemy.radius) {
+        state.bullets.splice(b, 1);
+        enemy.health -= 1;
+        burst(bullet.x, bullet.y, "#ffd166", 10);
+        playTone(620, 0.06, "triangle", 0.02);
+        if (enemy.health <= 0) {
+          state.enemies.splice(e, 1);
+          state.score += 250 + state.combo * 50;
+          state.combo = Math.min(12, state.combo + 1);
+          burst(enemy.x, enemy.y, "#ff6b6b", 24, 180);
+          playTone(320, 0.12, "square", 0.035);
+        }
+        break;
+      }
+    }
+  }
+}
+
+function hitEnemyBullets() {
+  if (player.invincible > 0) return;
+  for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
+    const ebullet = state.enemyBullets[i];
+    if (distance(player, ebullet) < player.radius + ebullet.radius) {
+      state.enemyBullets.splice(i, 1);
+      state.combo = 1;
+      state.shake = 8;
+      burst(player.x, player.y, "#ff6b6b", 20, 190);
+      playTone(140, 0.15, "sawtooth", 0.04);
+      if (state.shield > 0) {
+        state.shield -= 1;
+        player.invincible = 1.18;
+        showToast("Perisai pecah!");
+      } else {
+        endGame();
+      }
+      return;
+    }
+  }
+}
+
+function updateStamina() {
+  staminaFill.style.width = (state.boost * 100) + "%";
 }
 
 function collectPower(power) {
@@ -560,6 +670,8 @@ function draw() {
   drawTrails();
   drawBullets();
   drawItems();
+  drawEnemies();
+  drawEnemyBullets();
   drawPlayer();
   drawParticles();
   drawBoostMeter();
@@ -698,6 +810,45 @@ function drawBullets() {
     ctx.fillStyle = "rgba(255, 209, 102, 0.24)";
     ctx.beginPath();
     ctx.roundRect(bullet.x - 6, bullet.y - 3, 12, 24, 6);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawEnemies() {
+  ctx.save();
+  for (const enemy of state.enemies) {
+    ctx.shadowColor = "#ff6b6b";
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = "#ff6b6b";
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 107, 107, 0.3)";
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, enemy.radius + 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Draw health indicator
+    ctx.fillStyle = enemy.health >= 3 ? "#7ee081" : enemy.health === 2 ? "#ffd166" : "#ff6b6b";
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y - enemy.radius - 8, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawEnemyBullets() {
+  ctx.save();
+  ctx.shadowColor = "#ff6b6b";
+  ctx.shadowBlur = 10;
+  for (const ebullet of state.enemyBullets) {
+    ctx.fillStyle = "#ff6b6b";
+    ctx.beginPath();
+    ctx.arc(ebullet.x, ebullet.y, ebullet.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 107, 107, 0.4)";
+    ctx.beginPath();
+    ctx.arc(ebullet.x, ebullet.y, ebullet.radius + 3, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
