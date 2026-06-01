@@ -75,7 +75,10 @@ const state = {
   enemyBullets: [],
   particles: [],
   trails: [],
-  stars: []
+  stars: [],
+  musicTime: 0,
+  musicOsc: null,
+  musicGain: null
 };
 
 const player = {
@@ -170,6 +173,7 @@ function reset() {
   resultPanel.hidden = true;
   showToast("Orbit dibuka");
   updateHud();
+  initMusic();
 }
 
 function playTone(freq, duration, type = "sine", gain = 0.04) {
@@ -185,6 +189,36 @@ function playTone(freq, duration, type = "sine", gain = 0.04) {
   volume.connect(audioContext.destination);
   osc.start();
   osc.stop(audioContext.currentTime + duration);
+}
+
+function initMusic() {
+  if (state.muted) return;
+  audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+  if (state.musicOsc) {
+    state.musicOsc.stop();
+    state.musicGain.gain.value = 0;
+  }
+  state.musicOsc = audioContext.createOscillator();
+  state.musicGain = audioContext.createGain();
+  state.musicOsc.type = "sine";
+  state.musicGain.gain.value = 0.03;
+  state.musicOsc.connect(state.musicGain);
+  state.musicGain.connect(audioContext.destination);
+  state.musicOsc.start();
+}
+
+function updateMusic(dt) {
+  if (!state.running || state.paused || state.muted || !state.musicOsc) return;
+  state.musicTime += dt;
+  const beat = state.musicTime % 4;
+  const melodyPattern = [
+    440, 494, 523, 587, 659, 587, 523, 494
+  ];
+  const baseFreq = melodyPattern[Math.floor((state.musicTime * 2) % melodyPattern.length)];
+  const bassPattern = [130.81, 146.83, 164.81, 196.00];
+  const bassFreq = bassPattern[Math.floor((state.musicTime * 0.5) % bassPattern.length)];
+  const freq = Math.sin(state.musicTime * 3) > 0 ? baseFreq : bassFreq * 0.75;
+  state.musicOsc.frequency.setValueAtTime(freq, audioContext.currentTime);
 }
 
 function updateHud() {
@@ -434,6 +468,7 @@ function update(dt) {
   checkMission();
   updateHud();
   updateStamina();
+  updateMusic(dt);
 }
 
 function updateObjects(dt, slowFactor) {
@@ -686,6 +721,12 @@ function checkMission() {
 function endGame() {
   state.running = false;
   state.ended = true;
+  if (state.musicOsc) {
+    state.musicOsc.stop();
+    state.musicGain.gain.value = 0;
+    state.musicOsc = null;
+    state.musicGain = null;
+  }
   state.best = Math.max(state.best, Math.floor(state.score));
   localStorage.setItem(STORAGE_KEY, String(state.best));
   startButton.textContent = "Main lagi";
@@ -876,6 +917,13 @@ function drawEnemies() {
   ctx.save();
   for (const enemy of state.enemies) {
     ctx.translate(enemy.x, enemy.y);
+    
+    // Calculate angle toward player
+    const dx = player.x - enemy.x;
+    const dy = player.y - enemy.y;
+    const angle = Math.atan2(dy, dx) - Math.PI / 2;
+    ctx.rotate(angle);
+    
     ctx.shadowColor = "#ff6b6b";
     ctx.shadowBlur = 18;
     
@@ -1135,6 +1183,16 @@ muteButton.addEventListener("click", () => {
   state.muted = !state.muted;
   muteButton.setAttribute("aria-label", state.muted ? "Nyalakan suara" : "Matikan suara");
   muteButton.textContent = state.muted ? "X" : "♪";
+  if (state.muted) {
+    if (state.musicOsc) {
+      state.musicOsc.stop();
+      state.musicGain.gain.value = 0;
+      state.musicOsc = null;
+      state.musicGain = null;
+    }
+  } else if (state.running) {
+    initMusic();
+  }
 });
 
 setTouch(leftButton, "arrowleft");
