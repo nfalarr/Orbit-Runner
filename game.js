@@ -251,7 +251,7 @@ function spawnPower() {
     vy: rand(88, 138),
     pulse: 0
   });
-}"}}]
+}
 
 function spawnEnemy() {
   const scale = difficulty();
