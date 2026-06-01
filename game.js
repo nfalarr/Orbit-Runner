@@ -85,7 +85,11 @@ const player = {
   vy: 0,
   radius: 18,
   invincible: 0,
-  tilt: 0
+  tilt: 0,
+  tripleShot: 0,
+  rapidFire: 0,
+  spreadShot: 0,
+  piercing: 0
 };
 
 let audioContext;
@@ -143,6 +147,10 @@ function reset() {
   state.toastTimer = 0;
   state.fireCooldown = 0;
   state.enemyTimer = 8.5;
+  player.tripleShot = 0;
+  player.rapidFire = 0;
+  player.spreadShot = 0;
+  player.piercing = 0;
   state.hazards = [];
   state.gems = [];
   state.powers = [];
@@ -234,7 +242,7 @@ function spawnGem() {
 }
 
 function spawnPower() {
-  const types = ["shield", "magnet", "slow"];
+  const types = ["shield", "magnet", "slow", "triple", "rapid", "spread", "piercing"];
   state.powers.push({
     type: types[Math.floor(rand(0, types.length))],
     x: rand(34, state.width - 34),
@@ -243,7 +251,7 @@ function spawnPower() {
     vy: rand(88, 138),
     pulse: 0
   });
-}
+}"}}]
 
 function spawnEnemy() {
   const scale = difficulty();
@@ -291,23 +299,44 @@ function enemyShoot(enemy) {
 
 function shoot() {
   if (state.fireCooldown > 0) return;
-  state.fireCooldown = 0.18;
-  state.bullets.push({
-    x: player.x - 7,
-    y: player.y - 24,
-    vx: -18,
-    vy: -720,
-    radius: 4,
-    life: 1.1
-  });
-  state.bullets.push({
-    x: player.x + 7,
-    y: player.y - 24,
-    vx: 18,
-    vy: -720,
-    radius: 4,
-    life: 1.1
-  });
+  const cooldown = player.rapidFire > 0 ? 0.08 : 0.18;
+  state.fireCooldown = cooldown;
+  
+  const baseSpeed = -720;
+  const baseLateral = 18;
+  
+  const addBullet = (offsetX, angle) => {
+    const vx = offsetX + (angle !== 0 ? Math.sin(angle) * 120 : 0);
+    const vy = baseSpeed + (angle !== 0 ? Math.cos(angle) * 80 : 0);
+    state.bullets.push({
+      x: player.x + offsetX,
+      y: player.y - 24,
+      vx: vx,
+      vy: vy,
+      radius: player.piercing > 0 ? 5 : 4,
+      life: player.piercing > 0 ? 1.5 : 1.1,
+      piercing: player.piercing > 0
+    });
+  };
+  
+  if (player.tripleShot > 0) {
+    // Center bullet
+    addBullet(0, 0);
+    // Left bullet
+    addBullet(-12, -0.3);
+    // Right bullet
+    addBullet(12, 0.3);
+  } else if (player.spreadShot > 0) {
+    // Spread shot - 5 bullets
+    for (let i = -2; i <= 2; i++) {
+      addBullet(i * 8, i * 0.2);
+    }
+  } else {
+    // Normal shot - 2 bullets
+    addBullet(-7, 0);
+    addBullet(7, 0);
+  }
+  
   playTone(880, 0.04, "square", 0.018);
 }
 
@@ -335,6 +364,10 @@ function update(dt) {
   state.toastTimer = Math.max(0, state.toastTimer - dt);
   state.fireCooldown = Math.max(0, state.fireCooldown - dt);
   player.invincible = Math.max(0, player.invincible - dt);
+  player.tripleShot = Math.max(0, player.tripleShot - dt);
+  player.rapidFire = Math.max(0, player.rapidFire - dt);
+  player.spreadShot = Math.max(0, player.spreadShot - dt);
+  player.piercing = Math.max(0, player.piercing - dt);
 
   if (state.toastTimer <= 0) toastEl.classList.remove("show");
 
@@ -387,7 +420,7 @@ function update(dt) {
     spawnPower();
     state.powerTimer = rand(8, 13);
   }
-  if (state.enemyTimer <= 0) {
+  if (state.enemyTimer <= 0 && state.level >= 10) {
     spawnEnemy();
     state.enemyTimer = rand(5.5, 8.5);
   }
@@ -601,6 +634,29 @@ function collectPower(power) {
     state.slowField = 5.5;
     showToast("Slow field");
     burst(power.x, power.y, "#a78bfa", 20);
+  }
+  // Skill upgrades
+  if (power.type === "triple") {
+    player.tripleShot = 12;
+    player.spreadShot = 0;
+    showToast("Triple Shot!");
+    burst(power.x, power.y, "#ffd166", 24, 200);
+  }
+  if (power.type === "rapid") {
+    player.rapidFire = 10;
+    showToast("Rapid Fire!");
+    burst(power.x, power.y, "#ff8c42", 24, 200);
+  }
+  if (power.type === "spread") {
+    player.spreadShot = 12;
+    player.tripleShot = 0;
+    showToast("Spread Shot!");
+    burst(power.x, power.y, "#ff6b6b", 24, 200);
+  }
+  if (power.type === "piercing") {
+    player.piercing = 8;
+    showToast("Piercing Shots!");
+    burst(power.x, power.y, "#a78bfa", 24, 200);
   }
   state.score += 165;
   playTone(760, 0.16, "sine", 0.045);
@@ -937,6 +993,35 @@ function drawPlayer() {
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, 84 + Math.sin(state.time * 5) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Skill indicators
+  if (player.tripleShot > 0) {
+    ctx.strokeStyle = "rgba(255, 209, 102, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 50 + Math.sin(state.time * 10) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (player.rapidFire > 0) {
+    ctx.strokeStyle = "rgba(255, 140, 66, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 45 + Math.sin(state.time * 12) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (player.spreadShot > 0) {
+    ctx.strokeStyle = "rgba(255, 107, 107, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 55 + Math.sin(state.time * 9) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (player.piercing > 0) {
+    ctx.strokeStyle = "rgba(167, 139, 250, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 40 + Math.sin(state.time * 11) * 3, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
