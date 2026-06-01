@@ -277,7 +277,7 @@ h1 {
 
 .touch-controls {
   position: absolute;
-  inset: auto max(14px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  inset: auto max(14px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   z-index: 4;
   display: none;
   flex-direction: column;
@@ -341,10 +341,6 @@ h1 {
 #fire {
   color: #1a0e0d;
   background: rgba(255, 107, 107, 0.88);
-}
-
-.touch-controls {
-  display: flex;
 }
 
 .touch-controls button {
