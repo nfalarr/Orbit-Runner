@@ -356,6 +356,7 @@ function update(dt) {
   state.gemTimer -= dt;
   state.powerTimer -= dt;
   state.droneTimer -= dt;
+  state.enemyTimer -= dt;
   state.shake = Math.max(0, state.shake - dt * 22);
   state.boostCooldown = Math.max(0, state.boostCooldown - dt);
   state.boost = Math.min(1, state.boost + dt * 0.18);
