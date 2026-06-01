@@ -58,7 +58,6 @@ const state = {
   gemTimer: 0,
   powerTimer: 0,
   droneTimer: 0,
-  enemyTimer: 0,
   shake: 0,
   boost: 1,
   boostCooldown: 0,
@@ -71,14 +70,9 @@ const state = {
   gems: [],
   powers: [],
   bullets: [],
-  enemies: [],
-  enemyBullets: [],
   particles: [],
   trails: [],
-  stars: [],
-  musicTime: 0,
-  musicOsc: null,
-  musicGain: null
+  stars: []
 };
 
 const player = {
@@ -149,7 +143,6 @@ function reset() {
   state.magnet = 0;
   state.toastTimer = 0;
   state.fireCooldown = 0;
-  state.enemyTimer = 8.5;
   player.tripleShot = 0;
   player.rapidFire = 0;
   player.spreadShot = 0;
@@ -158,8 +151,6 @@ function reset() {
   state.gems = [];
   state.powers = [];
   state.bullets = [];
-  state.enemies = [];
-  state.enemyBullets = [];
   state.particles = [];
   state.trails = [];
   player.x = state.width / 2;
@@ -173,7 +164,6 @@ function reset() {
   resultPanel.hidden = true;
   showToast("Orbit dibuka");
   updateHud();
-  initMusic();
 }
 
 function playTone(freq, duration, type = "sine", gain = 0.04) {
@@ -189,36 +179,6 @@ function playTone(freq, duration, type = "sine", gain = 0.04) {
   volume.connect(audioContext.destination);
   osc.start();
   osc.stop(audioContext.currentTime + duration);
-}
-
-function initMusic() {
-  if (state.muted) return;
-  audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-  if (state.musicOsc) {
-    state.musicOsc.stop();
-    state.musicGain.gain.value = 0;
-  }
-  state.musicOsc = audioContext.createOscillator();
-  state.musicGain = audioContext.createGain();
-  state.musicOsc.type = "sine";
-  state.musicGain.gain.value = 0.03;
-  state.musicOsc.connect(state.musicGain);
-  state.musicGain.connect(audioContext.destination);
-  state.musicOsc.start();
-}
-
-function updateMusic(dt) {
-  if (!state.running || state.paused || state.muted || !state.musicOsc) return;
-  state.musicTime += dt;
-  const beat = state.musicTime % 4;
-  const melodyPattern = [
-    440, 494, 523, 587, 659, 587, 523, 494
-  ];
-  const baseFreq = melodyPattern[Math.floor((state.musicTime * 2) % melodyPattern.length)];
-  const bassPattern = [130.81, 146.83, 164.81, 196.00];
-  const bassFreq = bassPattern[Math.floor((state.musicTime * 0.5) % bassPattern.length)];
-  const freq = Math.sin(state.musicTime * 3) > 0 ? baseFreq : bassFreq * 0.75;
-  state.musicOsc.frequency.setValueAtTime(freq, audioContext.currentTime);
 }
 
 function updateHud() {
@@ -287,19 +247,6 @@ function spawnPower() {
   });
 }
 
-function spawnEnemy() {
-  const scale = difficulty();
-  state.enemies.push({
-    x: rand(60, state.width - 60),
-    y: -30,
-    radius: 20,
-    vy: rand(80, 140) * scale,
-    vx: rand(-60, 60),
-    shootTimer: rand(2.5, 4.5),
-    health: 3
-  });
-}
-
 function burst(x, y, color, amount = 12, speed = 160) {
   for (let i = 0; i < amount; i++) {
     state.particles.push({
@@ -313,22 +260,6 @@ function burst(x, y, color, amount = 12, speed = 160) {
       radius: rand(2, 5)
     });
   }
-}
-
-function enemyShoot(enemy) {
-  const dx = player.x - enemy.x;
-  const dy = player.y - enemy.y;
-  const dist = Math.hypot(dx, dy);
-  const speed = 240;
-  state.enemyBullets.push({
-    x: enemy.x,
-    y: enemy.y,
-    vx: (dx / dist) * speed,
-    vy: (dy / dist) * speed,
-    radius: 5,
-    life: 2.0
-  });
-  playTone(280, 0.06, "square", 0.015);
 }
 
 function shoot() {
@@ -390,7 +321,6 @@ function update(dt) {
   state.gemTimer -= dt;
   state.powerTimer -= dt;
   state.droneTimer -= dt;
-  state.enemyTimer -= dt;
   state.shake = Math.max(0, state.shake - dt * 22);
   state.boostCooldown = Math.max(0, state.boostCooldown - dt);
   state.boost = Math.min(1, state.boost + dt * 0.18);
@@ -455,20 +385,13 @@ function update(dt) {
     spawnPower();
     state.powerTimer = rand(8, 13);
   }
-  if (state.enemyTimer <= 0 && state.level >= 10) {
-    spawnEnemy();
-    state.enemyTimer = rand(5.5, 8.5);
-  }
 
   updateObjects(dt, slowFactor);
   hitHazards();
-  hitEnemies();
-  hitEnemyBullets();
   collectItems();
   checkMission();
   updateHud();
   updateStamina();
-  updateMusic(dt);
 }
 
 function updateObjects(dt, slowFactor) {
@@ -509,22 +432,6 @@ function updateObjects(dt, slowFactor) {
     bullet.life -= dt;
   }
 
-  for (const enemy of state.enemies) {
-    enemy.x += enemy.vx * dt;
-    enemy.y += enemy.vy * dt;
-    enemy.shootTimer -= dt;
-    if (enemy.shootTimer <= 0) {
-      enemyShoot(enemy);
-      enemy.shootTimer = rand(2.2, 3.8);
-    }
-  }
-
-  for (const ebullet of state.enemyBullets) {
-    ebullet.x += ebullet.vx * dt;
-    ebullet.y += ebullet.vy * dt;
-    ebullet.life -= dt;
-  }
-
   for (const particle of state.particles) {
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
@@ -540,8 +447,6 @@ function updateObjects(dt, slowFactor) {
   state.gems = state.gems.filter((item) => item.y < state.height + 60);
   state.powers = state.powers.filter((item) => item.y < state.height + 60);
   state.bullets = state.bullets.filter((item) => item.life > 0 && item.y > -30);
-  state.enemies = state.enemies.filter((item) => item.y < state.height + 90);
-  state.enemyBullets = state.enemyBullets.filter((item) => item.life > 0);
   state.particles = state.particles.filter((item) => item.life > 0);
   state.trails = state.trails.filter((item) => item.life > 0);
 }
@@ -598,51 +503,6 @@ function collectItems() {
         state.shield -= 1;
         player.invincible = 1.18;
         showToast("Perisai pecah");
-      } else {
-        endGame();
-      }
-      return;
-    }
-  }
-}
-
-function hitEnemies() {
-  for (let b = state.bullets.length - 1; b >= 0; b--) {
-    const bullet = state.bullets[b];
-    for (let e = state.enemies.length - 1; e >= 0; e--) {
-      const enemy = state.enemies[e];
-      if (distance(bullet, enemy) < bullet.radius + enemy.radius) {
-        state.bullets.splice(b, 1);
-        enemy.health -= 1;
-        burst(bullet.x, bullet.y, "#ffd166", 10);
-        playTone(620, 0.06, "triangle", 0.02);
-        if (enemy.health <= 0) {
-          state.enemies.splice(e, 1);
-          state.score += 250 + state.combo * 50;
-          state.combo = Math.min(12, state.combo + 1);
-          burst(enemy.x, enemy.y, "#ff6b6b", 24, 180);
-          playTone(320, 0.12, "square", 0.035);
-        }
-        break;
-      }
-    }
-  }
-}
-
-function hitEnemyBullets() {
-  if (player.invincible > 0) return;
-  for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
-    const ebullet = state.enemyBullets[i];
-    if (distance(player, ebullet) < player.radius + ebullet.radius) {
-      state.enemyBullets.splice(i, 1);
-      state.combo = 1;
-      state.shake = 8;
-      burst(player.x, player.y, "#ff6b6b", 20, 190);
-      playTone(140, 0.15, "sawtooth", 0.04);
-      if (state.shield > 0) {
-        state.shield -= 1;
-        player.invincible = 1.18;
-        showToast("Perisai pecah!");
       } else {
         endGame();
       }
@@ -721,12 +581,6 @@ function checkMission() {
 function endGame() {
   state.running = false;
   state.ended = true;
-  if (state.musicOsc) {
-    state.musicOsc.stop();
-    state.musicGain.gain.value = 0;
-    state.musicOsc = null;
-    state.musicGain = null;
-  }
   state.best = Math.max(state.best, Math.floor(state.score));
   localStorage.setItem(STORAGE_KEY, String(state.best));
   startButton.textContent = "Main lagi";
@@ -768,8 +622,6 @@ function draw() {
   drawTrails();
   drawBullets();
   drawItems();
-  drawEnemies();
-  drawEnemyBullets();
   drawPlayer();
   drawParticles();
   drawBoostMeter();
@@ -908,98 +760,6 @@ function drawBullets() {
     ctx.fillStyle = "rgba(255, 209, 102, 0.24)";
     ctx.beginPath();
     ctx.roundRect(bullet.x - 6, bullet.y - 3, 12, 24, 6);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawEnemies() {
-  ctx.save();
-  for (const enemy of state.enemies) {
-    ctx.translate(enemy.x, enemy.y);
-    
-    // Calculate angle toward player
-    const dx = player.x - enemy.x;
-    const dy = player.y - enemy.y;
-    const angle = Math.atan2(dy, dx) - Math.PI / 2;
-    ctx.rotate(angle);
-    
-    ctx.shadowColor = "#ff6b6b";
-    ctx.shadowBlur = 18;
-    
-    // Enemy ship body (red, different design from player)
-    ctx.fillStyle = "#ff6b6b";
-    ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.lineTo(16, 18);
-    ctx.lineTo(0, 8);
-    ctx.lineTo(-16, 18);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Wing accents (orange)
-    ctx.fillStyle = "#ff8c42";
-    ctx.beginPath();
-    ctx.moveTo(-16, 12);
-    ctx.lineTo(-22, 16);
-    ctx.lineTo(-16, 18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(16, 12);
-    ctx.lineTo(22, 16);
-    ctx.lineTo(16, 18);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Cockpit (white dot)
-    ctx.fillStyle = "#f7f4eb";
-    ctx.beginPath();
-    ctx.arc(0, -2, 4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Thruster (different from player)
-    ctx.fillStyle = "#ff4444";
-    ctx.beginPath();
-    ctx.moveTo(-6, 16);
-    ctx.lineTo(0, 26);
-    ctx.lineTo(6, 16);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Health indicator bar above enemy
-    const healthPercent = enemy.health / 3;
-    ctx.strokeStyle = enemy.health >= 3 ? "#7ee081" : enemy.health === 2 ? "#ffd166" : "#ff6b6b";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-12, -28);
-    ctx.lineTo(12, -28);
-    ctx.stroke();
-    
-    ctx.strokeStyle = ctx.strokeStyle;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-12, -28);
-    ctx.lineTo(-12 + 24 * healthPercent, -28);
-    ctx.stroke();
-    
-    ctx.translate(-enemy.x, -enemy.y);
-  }
-  ctx.restore();
-}
-
-function drawEnemyBullets() {
-  ctx.save();
-  ctx.shadowColor = "#ff6b6b";
-  ctx.shadowBlur = 10;
-  for (const ebullet of state.enemyBullets) {
-    ctx.fillStyle = "#ff6b6b";
-    ctx.beginPath();
-    ctx.arc(ebullet.x, ebullet.y, ebullet.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255, 107, 107, 0.4)";
-    ctx.beginPath();
-    ctx.arc(ebullet.x, ebullet.y, ebullet.radius + 3, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -1183,16 +943,6 @@ muteButton.addEventListener("click", () => {
   state.muted = !state.muted;
   muteButton.setAttribute("aria-label", state.muted ? "Nyalakan suara" : "Matikan suara");
   muteButton.textContent = state.muted ? "X" : "♪";
-  if (state.muted) {
-    if (state.musicOsc) {
-      state.musicOsc.stop();
-      state.musicGain.gain.value = 0;
-      state.musicOsc = null;
-      state.musicGain = null;
-    }
-  } else if (state.running) {
-    initMusic();
-  }
 });
 
 setTouch(leftButton, "arrowleft");
