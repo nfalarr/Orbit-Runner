@@ -81,14 +81,20 @@
         </div>
 
         <div class="touch-controls" aria-hidden="true">
-          <button id="left" type="button">LEFT</button>
-          <div class="vertical-controls">
-            <button id="up" type="button">UP</button>
-            <button id="down" type="button">DOWN</button>
+          <div class="control-group direction-controls">
+            <div class="direction-pad">
+              <button id="left" type="button" title="Kiri">←</button>
+              <div class="direction-vertical">
+                <button id="up" type="button" title="Atas">↑</button>
+                <button id="down" type="button" title="Bawah">↓</button>
+              </div>
+              <button id="right" type="button" title="Kanan">→</button>
+            </div>
           </div>
-          <button id="boost" type="button">BOOST</button>
-          <button id="fire" type="button">FIRE</button>
-          <button id="right" type="button">RIGHT</button>
+          <div class="control-group action-controls">
+            <button id="boost" type="button" title="Boost">BOOST</button>
+            <button id="fire" type="button" title="Tembak">FIRE</button>
+          </div>
         </div>
       </section>
     </main>

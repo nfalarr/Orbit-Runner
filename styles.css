@@ -280,11 +280,71 @@ h1 {
   inset: auto max(14px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   z-index: 4;
   display: none;
-  grid-template-columns: 70px 64px minmax(76px, 100px) minmax(76px, 100px) 70px;
-  gap: 8px;
-  justify-content: center;
-  align-items: end;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
   pointer-events: none;
+}
+
+.control-group {
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.direction-controls {
+  flex-direction: column;
+}
+
+.direction-pad {
+  display: grid;
+  grid-template-columns: 64px 60px 64px;
+  grid-template-rows: 48px 48px;
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+}
+
+.direction-pad #left {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.direction-pad #right {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+.direction-vertical {
+  display: grid;
+  grid-template-columns: 60px;
+  gap: 8px;
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+.direction-vertical button {
+  height: 48px;
+}
+
+.action-controls {
+  flex-direction: row;
+  justify-content: center;
+}
+
+#boost {
+  color: #10131a;
+  background: rgba(87, 217, 255, 0.82);
+}
+
+#fire {
+  color: #1a0e0d;
+  background: rgba(255, 107, 107, 0.88);
+}
+
+.touch-controls {
+  display: flex;
 }
 
 .touch-controls button {
@@ -299,31 +359,13 @@ h1 {
   line-height: 1;
   letter-spacing: 0.06em;
   backdrop-filter: blur(14px);
-}
-
-.vertical-controls {
-  display: grid;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.vertical-controls button {
-  height: 44px;
-}
-
-#boost {
-  color: #10131a;
-  background: rgba(87, 217, 255, 0.82);
-}
-
-#fire {
-  color: #1a0e0d;
-  background: rgba(255, 107, 107, 0.88);
+  min-width: 56px;
+  width: 56px;
 }
 
 @media (pointer: coarse) {
   .touch-controls {
-    display: grid;
+    display: flex;
   }
 }
 
@@ -394,17 +436,30 @@ h1 {
     font-size: 12px;
   }
 
-  .touch-controls {
-    grid-template-columns: 56px 52px 74px 74px 56px;
+  .direction-pad {
+    grid-template-columns: 50px 48px 50px;
+    grid-template-rows: 44px 44px;
     gap: 6px;
   }
 
-  .touch-controls button {
-    height: 52px;
-    font-size: 10px;
+  .direction-vertical button {
+    height: 44px;
   }
 
-  .vertical-controls button {
-    height: 40px;
+  .direction-vertical {
+    grid-template-columns: 48px;
+  }
+
+  .touch-controls button {
+    height: 48px;
+    font-size: 10px;
+    min-width: 48px;
+    width: 48px;
+  }
+
+  #boost,
+  #fire {
+    min-width: 72px;
+    width: 72px;
   }
 }
