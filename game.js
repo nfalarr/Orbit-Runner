@@ -818,21 +818,67 @@ function drawBullets() {
 function drawEnemies() {
   ctx.save();
   for (const enemy of state.enemies) {
+    ctx.translate(enemy.x, enemy.y);
     ctx.shadowColor = "#ff6b6b";
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 18;
+    
+    // Enemy ship body (red, different design from player)
     ctx.fillStyle = "#ff6b6b";
     ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+    ctx.moveTo(0, -22);
+    ctx.lineTo(16, 18);
+    ctx.lineTo(0, 8);
+    ctx.lineTo(-16, 18);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "rgba(255, 107, 107, 0.3)";
+    
+    // Wing accents (orange)
+    ctx.fillStyle = "#ff8c42";
     ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, enemy.radius + 6, 0, Math.PI * 2);
+    ctx.moveTo(-16, 12);
+    ctx.lineTo(-22, 16);
+    ctx.lineTo(-16, 18);
+    ctx.closePath();
     ctx.fill();
-    // Draw health indicator
-    ctx.fillStyle = enemy.health >= 3 ? "#7ee081" : enemy.health === 2 ? "#ffd166" : "#ff6b6b";
     ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y - enemy.radius - 8, 4, 0, Math.PI * 2);
+    ctx.moveTo(16, 12);
+    ctx.lineTo(22, 16);
+    ctx.lineTo(16, 18);
+    ctx.closePath();
     ctx.fill();
+    
+    // Cockpit (white dot)
+    ctx.fillStyle = "#f7f4eb";
+    ctx.beginPath();
+    ctx.arc(0, -2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Thruster (different from player)
+    ctx.fillStyle = "#ff4444";
+    ctx.beginPath();
+    ctx.moveTo(-6, 16);
+    ctx.lineTo(0, 26);
+    ctx.lineTo(6, 16);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Health indicator bar above enemy
+    const healthPercent = enemy.health / 3;
+    ctx.strokeStyle = enemy.health >= 3 ? "#7ee081" : enemy.health === 2 ? "#ffd166" : "#ff6b6b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-12, -28);
+    ctx.lineTo(12, -28);
+    ctx.stroke();
+    
+    ctx.strokeStyle = ctx.strokeStyle;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-12, -28);
+    ctx.lineTo(-12 + 24 * healthPercent, -28);
+    ctx.stroke();
+    
+    ctx.translate(-enemy.x, -enemy.y);
   }
   ctx.restore();
 }
@@ -908,20 +954,7 @@ function drawParticles() {
 }
 
 function drawBoostMeter() {
-  const width = Math.min(260, state.width - 32);
-  const x = (state.width - width) / 2;
-  const y = Math.max(82, state.height - 138);
-  ctx.fillStyle = "rgba(10, 14, 24, 0.56)";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(x, y, width, 9, 5);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = state.boostCooldown > 0 ? "#ff6b6b" : "#57d9ff";
-  ctx.beginPath();
-  ctx.roundRect(x + 2, y + 2, Math.max(4, (width - 4) * state.boost), 5, 4);
-  ctx.fill();
+  // Stamina bar handled by HTML element at bottom
 }
 
 function loop(now) {
