@@ -65,6 +65,3 @@ Kumpulkan item jatuh untuk mendapat:
 4. Ambil 18 kristal → Slow field
 5. Capai 1800m → Bonus skor
 
-## Deploy
-
-Game ini static site, jadi bisa langsung dipublish lewat GitHub Pages, Netlify, Vercel, atau hosting static lain tanpa build step.
