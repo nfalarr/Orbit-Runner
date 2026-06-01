@@ -1,6 +1,8 @@
-# Orbit Runner
+# Orbit Runner 💫
 
 Orbit Runner adalah game arcade survival berbasis HTML Canvas. Pemain mengendalikan pesawat di orbit, menghindari meteor, menembak ancaman, mengambil kristal, dan mengumpulkan power-up untuk bertahan selama mungkin.
+
+🌐 **Demo Aplikasi:** https://orbit-runner-game.netlify.app
 
 ## Fitur
 
@@ -29,12 +31,6 @@ Kontrol mobile:
 
 - Gunakan tombol `LEFT`, `RIGHT`, `UP`, `DOWN`, `BOOST`, dan `FIRE`.
 - Bisa juga drag langsung di area game untuk mengarahkan pesawat.
-
-## Struktur File
-
-- `index.html`: struktur UI game
-- `styles.css`: tampilan, layout, dan responsivitas
-- `game.js`: logika game, rendering canvas, input, collision, skor, dan audio
 
 ## Deploy
 
