@@ -1,4 +1,12 @@
-# Orbit Runner 💫
+<h1 align="center">Orbit Runner 💫</h1>
+
+<p align="center">
+  <a href="https://orbit-runner-game.netlify.app"><img src="https://img.shields.io/badge/status-active%20development-brightgreen" alt="Status: Active Development"></a>
+  <a href="https://orbit-runner-game.netlify.app"><img src="https://img.shields.io/badge/demo-Netlify-00C7B7?logo=netlify&logoColor=white" alt="Demo on Netlify"></a>
+  <img src="https://img.shields.io/github/languages/top/nfalarr/Orbit-Runner" alt="Top Language">
+  <img src="https://img.shields.io/github/last-commit/nfalarr/Orbit-Runner" alt="Last Commit">
+  <img src="https://img.shields.io/github/stars/nfalarr/Orbit-Runner" alt="GitHub Stars">
+</p>
 
 Orbit Runner adalah game arcade survival berbasis HTML Canvas. Pemain mengendalikan pesawat di orbit, menghindari meteor, menembak ancaman, mengambil kristal, dan mengumpulkan power-up untuk bertahan selama mungkin.
 
