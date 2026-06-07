@@ -8,46 +8,47 @@
   <img src="https://img.shields.io/github/stars/nfalarr/Orbit-Runner" alt="GitHub Stars">
 </p>
 
-<p align="center">
-  Game arcade survival berbasis HTML Canvas: hindari meteor, tembak ancaman, dan kumpulkan power-up untuk bertahan selama mungkin.
-</p>
+Orbit Runner adalah game arcade survival berbasis HTML Canvas. Hindari meteor, tembak ancaman, dan kumpulkan power-up untuk bertahan selama mungkin.
+
+🌐 **Demo Aplikasi:** https://orbit-runner-game.netlify.app
 
 ## Fitur
 
-| Gameplay | Sistem |
-| --- | --- |
-| Kontrol 4 arah, tembak, dan boost | Level scaling, combo, skor, dan misi |
-| Triple Shot, Rapid Fire, Spread Shot, dan Piercing | Shield, magnet, slow field, dan stamina |
-| Responsif untuk desktop dan mobile | Efek suara arcade dengan toggle mute |
+- Kontrol pesawat responsif untuk desktop dan mobile
+- Skill senjata: Triple Shot, Rapid Fire, Spread Shot, dan Piercing
+- Power-up: Shield, magnet, slow field, dan boost
+- Sistem level, misi, combo, dan skor
+- Stamina bar dan efek suara arcade
 
 ## Cara Main
 
-Buka [demo aplikasi](https://orbit-runner-game.netlify.app) atau jalankan `index.html` di browser modern.
+Buka `index.html` di browser modern.
 
-| Aksi | Desktop | Mobile |
-| --- | --- | --- |
-| Bergerak | `WASD` / tombol panah | D-Pad |
-| Tembak | `F` / `Enter` | **FIRE** |
-| Boost | `Space` / `Shift` | **BOOST** |
-| Pause / mute | `P` / `Escape` / `M` | Tombol pada layar |
+**Kontrol Desktop:**
+- `WASD` / tombol panah: bergerak
+- `F` / `Enter`: tembak
+- `Space` / `Shift`: boost
+- `P` / `Escape`: pause
+- `M`: toggle mute
 
-<details>
-<summary><strong>Detail Mekanik Game</strong></summary>
+**Kontrol Mobile:**
+- **D-Pad**: bergerak
+- **FIRE**: tembak
+- **BOOST**: boost
+
+## Mekanik Game
 
 ### Power-Up & Skill
+- **Defense**: Shield, magnet, dan slow field
+- **Weapon**: Triple Shot, Rapid Fire, Spread Shot, dan Piercing
 
-- **Defense:** Shield, magnet, dan slow field
-- **Weapon:** Triple Shot, Rapid Fire, Spread Shot, dan Piercing
-- **Progression:** Level naik setiap 420m; hazard dan skor meningkat mengikuti level
+### Sistem Level
+- Level naik setiap 420m
+- Hazard dan skor meningkat mengikuti level
 
-### Misi
-
-| Target | Reward |
-| --- | --- |
-| Ambil 5 kristal | Perisai +1 |
-| Combo x5 | Boost penuh |
-| Capai 900m | Magnet aktif |
-| Ambil 18 kristal | Slow field |
-| Capai 1800m | Bonus skor |
-
-</details>
+### Persyaratan Misi
+1. Ambil 5 kristal → Perisai +1
+2. Combo x5 → Boost penuh
+3. Capai 900m → Magnet aktif
+4. Ambil 18 kristal → Slow field
+5. Capai 1800m → Bonus skor
